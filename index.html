@@ -1,0 +1,1021 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Block Blast Solver</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 20px 0;
+            box-shadow: 0 2px 20px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        .nav {
+            display: flex;
+            gap: 30px;
+        }
+
+        .nav a {
+            text-decoration: none;
+            color: #666;
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+
+        .nav a:hover {
+            color: #3498db;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        .main-title {
+            text-align: center;
+            color: white;
+            margin-bottom: 10px;
+        }
+
+        .main-title h1 {
+            font-size: 3rem;
+            font-weight: 300;
+            margin-bottom: 10px;
+        }
+
+        .main-title p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .stats {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+            font-size: 1.1rem;
+        }
+
+        .game-container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            margin-bottom: 40px;
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .game-area {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            margin-bottom: 30px;
+        }
+
+        .board-section {
+            text-align: center;
+        }
+
+        .board-container {
+            display: inline-block;
+            background: #2c3e50;
+            padding: 15px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+        }
+
+        .board {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 3px;
+            background: #34495e;
+            padding: 10px;
+            border-radius: 10px;
+        }
+
+        .cell {
+            width: 40px;
+            height: 40px;
+            background: #ecf0f1;
+            border: 2px solid #bdc3c7;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 12px;
+        }
+
+        .cell:hover {
+            background: #d5dbdb;
+            transform: scale(1.05);
+        }
+
+        .cell.filled {
+            background: #e74c3c;
+            border-color: #c0392b;
+            color: white;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .blocks-section {
+            text-align: center;
+        }
+
+        .block-editor {
+            margin-bottom: 25px;
+        }
+
+        .block-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 15px;
+        }
+
+        .block-container {
+            display: inline-block;
+            background: #2c3e50;
+            padding: 12px;
+            border-radius: 12px;
+            margin-bottom: 15px;
+        }
+
+        .block-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 2px;
+            background: #34495e;
+            padding: 8px;
+            border-radius: 8px;
+        }
+
+        .block-cell {
+            width: 30px;
+            height: 30px;
+            background: #ecf0f1;
+            border: 2px solid #bdc3c7;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border-radius: 3px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .block-cell:hover {
+            background: #d5dbdb;
+            transform: scale(1.05);
+        }
+
+        .block-cell.filled {
+            background: #3498db;
+            border-color: #2980b9;
+            color: white;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(52, 152, 219, 0.4);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%);
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(149, 165, 166, 0.4);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #27ae60 0%, #229954 100%);
+            color: white;
+        }
+
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(39, 174, 96, 0.4);
+        }
+
+        .btn:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .solve-section {
+            text-align: center;
+            margin: 30px 0;
+        }
+
+        .solve-btn {
+            padding: 15px 40px;
+            font-size: 1.2rem;
+            border-radius: 12px;
+        }
+
+        .solutions-section {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 30px;
+            margin-top: 30px;
+        }
+
+        .solution {
+            background: white;
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .solution:hover {
+            border-color: #3498db;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        }
+
+        .solution.selected {
+            border-color: #27ae60;
+            background: linear-gradient(135deg, #d5f4e6 0%, #c8e6c9 100%);
+        }
+
+        .solution-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .solution-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .solution-score {
+            font-weight: bold;
+            color: #27ae60;
+            font-size: 1.3rem;
+        }
+
+        .solution-details {
+            font-size: 0.95rem;
+            color: #6c757d;
+            line-height: 1.6;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #7f8c8d;
+            font-style: italic;
+            font-size: 1.1rem;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border: 1px solid #f5c6cb;
+        }
+
+        .success {
+            background: #d4edda;
+            color: #155724;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border: 1px solid #c3e6cb;
+        }
+
+        .iteration-info {
+            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+            color: #1565c0;
+            padding: 15px 25px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            text-align: center;
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #6c757d;
+        }
+
+        .empty-state h3 {
+            margin-bottom: 15px;
+            color: #2c3e50;
+            font-size: 1.5rem;
+        }
+
+        .empty-state p {
+            font-size: 1.1rem;
+            line-height: 1.6;
+        }
+
+        @media (max-width: 768px) {
+            .game-area {
+                grid-template-columns: 1fr;
+                gap: 30px;
+            }
+            
+            .cell {
+                width: 35px;
+                height: 35px;
+            }
+            
+            .block-cell {
+                width: 25px;
+                height: 25px;
+            }
+            
+            .main-title h1 {
+                font-size: 2rem;
+            }
+            
+            .nav {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-content">
+            <div class="logo">Block Blast Solver</div>
+            <nav class="nav">
+                <a href="#solver">Solver</a>
+                <a href="#tips">Tips</a>
+                <a href="#play">Play Online</a>
+            </nav>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="main-title">
+            <h1>Block Blast Solver</h1>
+            <p>Get optimal solutions for your Block Blast puzzles</p>
+        </div>
+
+        <div class="stats">
+            <strong>316,000+</strong> Players Rising
+        </div>
+
+        <div class="game-container">
+            <h2 class="section-title">Input Your Blocks</h2>
+            <p style="text-align: center; color: #666; margin-bottom: 30px;">
+                Click the cells to recreate your Block Blast game board
+            </p>
+
+            <div class="iteration-info">
+                Iteration: <span id="iteration">1</span>
+            </div>
+
+            <div class="game-area">
+                <div class="board-section">
+                    <h3 class="section-title">Game Board (8×8)</h3>
+                    <div class="board-container">
+                        <div class="board" id="mainBoard"></div>
+                    </div>
+                    <div class="controls">
+                        <button class="btn btn-secondary" onclick="resetBoard()">Clear All</button>
+                    </div>
+                </div>
+
+                <div class="blocks-section">
+                    <h3 class="section-title">Block Designers (5×5)</h3>
+                    
+                    <div class="block-editor">
+                        <div class="block-title">Block 1</div>
+                        <div class="block-container">
+                            <div class="block-grid" id="block1"></div>
+                        </div>
+                        <div class="controls">
+                            <button class="btn btn-secondary" onclick="loadPresetShape(0, 'lShape')">L</button>
+                            <button class="btn btn-secondary" onclick="loadPresetShape(0, 'tShape')">T</button>
+                            <button class="btn btn-secondary" onclick="loadPresetShape(0, 'square')">□</button>
+                            <button class="btn btn-secondary" onclick="clearBlock(0)">Clear</button>
+                        </div>
+                    </div>
+
+                    <div class="block-editor">
+                        <div class="block-title">Block 2</div>
+                        <div class="block-container">
+                            <div class="block-grid" id="block2"></div>
+                        </div>
+                        <div class="controls">
+                            <button class="btn btn-secondary" onclick="loadPresetShape(1, 'line')">—</button>
+                            <button class="btn btn-secondary" onclick="loadPresetShape(1, 'zShape')">Z</button>
+                            <button class="btn btn-secondary" onclick="loadPresetShape(1, 'cross')">+</button>
+                            <button class="btn btn-secondary" onclick="clearBlock(1)">Clear</button>
+                        </div>
+                    </div>
+
+                    <div class="block-editor">
+                        <div class="block-title">Block 3</div>
+                        <div class="block-container">
+                            <div class="block-grid" id="block3"></div>
+                        </div>
+                        <div class="controls">
+                            <button class="btn btn-secondary" onclick="loadPresetShape(2, 'square')">□</button>
+                            <button class="btn btn-secondary" onclick="loadPresetShape(2, 'lShape')">L</button>
+                            <button class="btn btn-secondary" onclick="loadPresetShape(2, 'tShape')">T</button>
+                            <button class="btn btn-secondary" onclick="clearBlock(2)">Clear</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="solve-section">
+                <button class="btn btn-primary solve-btn" onclick="findSolutions()" id="solveBtn">
+                    Get Solutions
+                </button>
+            </div>
+        </div>
+
+        <div class="solutions-section">
+            <h2 class="section-title">Solutions</h2>
+            
+            <div id="loadingMsg" class="loading" style="display: none;">
+                🧠 Analyzing board and finding optimal solutions...
+            </div>
+            
+            <div id="errorMsg" class="error" style="display: none;"></div>
+            
+            <div id="solutionsList">
+                <div class="empty-state">
+                    <h3>Ready to Solve!</h3>
+                    <p>Design your blocks and click "Get Solutions" to receive AI-powered placement strategies.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Game state
+        let gameState = {
+            board: Array(8).fill().map(() => Array(8).fill(0)),
+            blocks: [
+                Array(5).fill().map(() => Array(5).fill(0)),
+                Array(5).fill().map(() => Array(5).fill(0)),
+                Array(5).fill().map(() => Array(5).fill(0))
+            ],
+            solutions: [],
+            selectedSolution: null,
+            iteration: 1
+        };
+
+        // Preset shapes
+        const presetShapes = {
+            lShape: [
+                [1, 0, 0, 0, 0],
+                [1, 0, 0, 0, 0],
+                [1, 1, 0, 0, 0],
+                [0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0]
+            ],
+            line: [
+                [1, 1, 1, 0, 0],
+                [0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0]
+            ],
+            square: [
+                [1, 1, 0, 0, 0],
+                [1, 1, 0, 0, 0],
+                [0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0]
+            ],
+            tShape: [
+                [1, 1, 1, 0, 0],
+                [0, 1, 0, 0, 0],
+                [0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0]
+            ],
+            zShape: [
+                [1, 1, 0, 0, 0],
+                [0, 1, 1, 0, 0],
+                [0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0]
+            ],
+            cross: [
+                [0, 1, 0, 0, 0],
+                [1, 1, 1, 0, 0],
+                [0, 1, 0, 0, 0],
+                [0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0]
+            ]
+        };
+
+        // Initialize
+        function init() {
+            createGrid('mainBoard', 8, 8, (row, col) => toggleBoardCell(row, col));
+            createGrid('block1', 5, 5, (row, col) => toggleBlockCell(0, row, col));
+            createGrid('block2', 5, 5, (row, col) => toggleBlockCell(1, row, col));
+            createGrid('block3', 5, 5, (row, col) => toggleBlockCell(2, row, col));
+            
+            // Add drag functionality to block grids
+            addDragToBlock('block1', 0);
+            addDragToBlock('block2', 1);
+            addDragToBlock('block3', 2);
+            
+            // Load preset shapes
+            loadPresetShape(0, 'lShape');
+            loadPresetShape(1, 'tShape');
+            loadPresetShape(2, 'zShape');
+        }
+
+        // Create grid
+        function createGrid(containerId, rows, cols, clickHandler) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+            
+            for (let row = 0; row < rows; row++) {
+                for (let col = 0; col < cols; col++) {
+                    const cell = document.createElement('div');
+                    cell.className = containerId === 'mainBoard' ? 'cell' : 'block-cell';
+                    cell.dataset.row = row;
+                    cell.dataset.col = col;
+                    cell.addEventListener('click', () => clickHandler(row, col));
+                    container.appendChild(cell);
+                }
+            }
+        }
+
+        // Add drag functionality to block grids
+        function addDragToBlock(containerId, blockIndex) {
+            const container = document.getElementById(containerId);
+            let isDragging = false;
+            let dragMode = null; // 'fill' or 'clear'
+            let processedCells = new Set();
+
+            // Add mousedown to all cells
+            container.addEventListener('mousedown', (e) => {
+                if (e.target.classList.contains('block-cell')) {
+                    isDragging = true;
+                    const row = parseInt(e.target.dataset.row);
+                    const col = parseInt(e.target.dataset.col);
+                    const cellId = `${row}-${col}`;
+                    
+                    // Determine drag mode based on current cell state
+                    dragMode = gameState.blocks[blockIndex][row][col] === 1 ? 'clear' : 'fill';
+                    processedCells.clear();
+                    processedCells.add(cellId);
+                    
+                    // Toggle the starting cell
+                    toggleBlockCell(blockIndex, row, col);
+                    e.preventDefault();
+                }
+            });
+
+            // Add mouseover to all cells
+            container.addEventListener('mouseover', (e) => {
+                if (isDragging && e.target.classList.contains('block-cell')) {
+                    const row = parseInt(e.target.dataset.row);
+                    const col = parseInt(e.target.dataset.col);
+                    const cellId = `${row}-${col}`;
+                    
+                    // Only process if we haven't processed this cell yet
+                    if (!processedCells.has(cellId)) {
+                        const currentValue = gameState.blocks[blockIndex][row][col];
+                        
+                        // Apply the drag mode
+                        if (dragMode === 'fill' && currentValue === 0) {
+                            toggleBlockCell(blockIndex, row, col);
+                        } else if (dragMode === 'clear' && currentValue === 1) {
+                            toggleBlockCell(blockIndex, row, col);
+                        }
+                        
+                        processedCells.add(cellId);
+                    }
+                }
+            });
+
+            // Stop dragging on mouseup anywhere
+            document.addEventListener('mouseup', () => {
+                isDragging = false;
+                dragMode = null;
+                processedCells.clear();
+            });
+
+            // Stop dragging if mouse leaves the container
+            container.addEventListener('mouseleave', () => {
+                isDragging = false;
+                dragMode = null;
+                processedCells.clear();
+            });
+        }
+
+        // Toggle functions
+        function toggleBoardCell(row, col) {
+            gameState.board[row][col] = gameState.board[row][col] === 1 ? 0 : 1;
+            updateBoardDisplay();
+        }
+
+        function toggleBlockCell(blockIndex, row, col) {
+            gameState.blocks[blockIndex][row][col] = gameState.blocks[blockIndex][row][col] === 1 ? 0 : 1;
+            updateBlockDisplay(blockIndex);
+        }
+
+        // Update displays
+        function updateBoardDisplay() {
+            const cells = document.querySelectorAll('#mainBoard .cell');
+            cells.forEach(cell => {
+                const row = parseInt(cell.dataset.row);
+                const col = parseInt(cell.dataset.col);
+                cell.classList.toggle('filled', gameState.board[row][col] === 1);
+            });
+        }
+
+        function updateBlockDisplay(blockIndex) {
+            const cells = document.querySelectorAll(`#block${blockIndex + 1} .block-cell`);
+            cells.forEach(cell => {
+                const row = parseInt(cell.dataset.row);
+                const col = parseInt(cell.dataset.col);
+                cell.classList.toggle('filled', gameState.blocks[blockIndex][row][col] === 1);
+            });
+        }
+
+        // Utility functions
+        function loadPresetShape(blockIndex, shapeName) {
+            if (presetShapes[shapeName]) {
+                gameState.blocks[blockIndex] = presetShapes[shapeName].map(row => [...row]);
+                updateBlockDisplay(blockIndex);
+            }
+        }
+
+        function clearBlock(blockIndex) {
+            gameState.blocks[blockIndex] = Array(5).fill().map(() => Array(5).fill(0));
+            updateBlockDisplay(blockIndex);
+        }
+
+        function resetBoard() {
+            gameState.board = Array(8).fill().map(() => Array(8).fill(0));
+            updateBoardDisplay();
+        }
+
+        function hasBlocks() {
+            return gameState.blocks.some(block => 
+                block.some(row => row.some(cell => cell === 1))
+            );
+        }
+
+        // API functions
+        async function findSolutions() {
+            if (!hasBlocks()) {
+                showError('Please design at least one block before finding solutions.');
+                return;
+            }
+
+            showLoading(true);
+            hideError();
+
+            try {
+                const response = await fetch('http://localhost:8000/api/solve', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        board: gameState.board,
+                        blocks: gameState.blocks
+                    }),
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to solve iteration');
+                }
+
+                gameState.solutions = data.solutions;
+                gameState.selectedSolution = data.solutions.length > 0 ? 0 : null;
+                displaySolutions();
+
+            } catch (error) {
+                showError(error.message);
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        function displaySolutions() {
+            const container = document.getElementById('solutionsList');
+            container.innerHTML = '';
+
+            if (gameState.solutions.length === 0) {
+                container.innerHTML = '<div class="error">No valid solutions found. Try different block configurations.</div>';
+                return;
+            }
+
+            gameState.solutions.forEach((solution, index) => {
+                const solutionDiv = document.createElement('div');
+                solutionDiv.className = `solution ${index === gameState.selectedSolution ? 'selected' : ''}`;
+                solutionDiv.onclick = () => selectSolution(index);
+
+                // Create visual representation of the solution
+                const solutionSteps = createSolutionVisualization(solution);
+
+                solutionDiv.innerHTML = `
+                    <div class="solution-header">
+                        <div class="solution-title">Solution ${index + 1}</div>
+                        <div class="solution-score">Score: ${solution.score}</div>
+                    </div>
+                    <div class="solution-details">
+                        <div><strong>Lines Cleared:</strong> ${solution.lines_cleared}</div>
+                        <div><strong>Block Order:</strong> ${solution.block_order.map(i => i + 1).join(' → ')}</div>
+                    </div>
+                    <div class="solution-steps">
+                        <h4 style="margin-bottom: 15px; color: #2c3e50;">Step-by-Step Solution:</h4>
+                        ${solutionSteps}
+                    </div>
+                `;
+
+                container.appendChild(solutionDiv);
+            });
+
+            const acceptBtn = document.createElement('button');
+            acceptBtn.className = 'btn btn-success';
+            acceptBtn.textContent = 'Accept This Solution';
+            acceptBtn.disabled = gameState.selectedSolution === null;
+            acceptBtn.onclick = acceptSolution;
+            acceptBtn.style.marginTop = '20px';
+            acceptBtn.style.width = '100%';
+            acceptBtn.style.padding = '15px';
+            acceptBtn.style.fontSize = '1.1rem';
+            container.appendChild(acceptBtn);
+        }
+
+        function createSolutionVisualization(solution) {
+            let stepsHtml = '';
+            let currentBoard = gameState.board.map(row => [...row]);
+            
+            solution.placements.forEach((placement, stepIndex) => {
+                const blockIndex = placement.block_index;
+                const centerRow = placement.center_row;
+                const centerCol = placement.center_col;
+                
+                // Get the block shape
+                const blockShape = gameState.blocks[blockIndex];
+                const blockCoords = [];
+                
+                // Extract coordinates of filled cells
+                for (let row = 0; row < 5; row++) {
+                    for (let col = 0; col < 5; col++) {
+                        if (blockShape[row][col] === 1) {
+                            const absRow = centerRow - 2 + row;
+                            const absCol = centerCol - 2 + col;
+                            if (absRow >= 0 && absRow < 8 && absCol >= 0 && absCol < 8) {
+                                blockCoords.push({row: absRow, col: absCol});
+                            }
+                        }
+                    }
+                }
+                
+                // Create a mini board showing the placement
+                const miniBoard = Array(8).fill().map(() => Array(8).fill(0));
+                
+                // Copy current board state
+                currentBoard.forEach((row, r) => {
+                    row.forEach((cell, c) => {
+                        miniBoard[r][c] = cell;
+                    });
+                });
+                
+                // Add the new block
+                blockCoords.forEach(coord => {
+                    miniBoard[coord.row][coord.col] = 2; // 2 = new block
+                });
+                
+                // Create visual representation
+                const boardHtml = createMiniBoardHtml(miniBoard, stepIndex + 1);
+                
+                stepsHtml += `
+                    <div class="step-container" style="margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                        <div style="display: flex; align-items: center; margin-bottom: 10px;">
+                            <div style="background: #3498db; color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; margin-right: 15px;">
+                                ${stepIndex + 1}
+                            </div>
+                            <div>
+                                <strong>Place Block ${blockIndex + 1}</strong> at center (${centerRow}, ${centerCol})
+                            </div>
+                        </div>
+                        ${boardHtml}
+                    </div>
+                `;
+                
+                // Update current board for next step
+                blockCoords.forEach(coord => {
+                    currentBoard[coord.row][coord.col] = 1;
+                });
+            });
+            
+            return stepsHtml;
+        }
+
+        function createMiniBoardHtml(board, stepNumber) {
+            let html = '<div style="display: inline-block; background: #2c3e50; padding: 8px; border-radius: 6px;">';
+            html += '<div style="display: grid; grid-template-columns: repeat(8, 1fr); gap: 1px; background: #34495e; padding: 4px; border-radius: 4px;">';
+            
+            for (let row = 0; row < 8; row++) {
+                for (let col = 0; col < 8; col++) {
+                    const cellValue = board[row][col];
+                    let cellClass = 'mini-cell';
+                    let cellStyle = 'width: 20px; height: 20px; border: 1px solid #bdc3c7; border-radius: 2px; display: flex; align-items: center; justify-content: center; font-size: 8px; font-weight: bold;';
+                    
+                    if (cellValue === 1) {
+                        cellStyle += 'background: #e74c3c; color: white;';
+                    } else if (cellValue === 2) {
+                        cellStyle += 'background: #3498db; color: white;';
+                    } else {
+                        cellStyle += 'background: #ecf0f1;';
+                    }
+                    
+                    html += `<div class="${cellClass}" style="${cellStyle}"></div>`;
+                }
+            }
+            
+            html += '</div></div>';
+            return html;
+        }
+
+        function selectSolution(index) {
+            gameState.selectedSolution = index;
+            displaySolutions();
+        }
+
+        async function acceptSolution() {
+            if (gameState.selectedSolution === null) return;
+
+            const selectedSol = gameState.solutions[gameState.selectedSolution];
+            if (!selectedSol) return;
+
+            showLoading(true);
+            hideError();
+
+            try {
+                const response = await fetch('http://localhost:8000/api/apply-solution', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        board: gameState.board,
+                        blocks: gameState.blocks,
+                        solution: selectedSol
+                    }),
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to apply solution');
+                }
+
+                gameState.board = data.final_board;
+                gameState.blocks = [
+                    Array(5).fill().map(() => Array(5).fill(0)),
+                    Array(5).fill().map(() => Array(5).fill(0)),
+                    Array(5).fill().map(() => Array(5).fill(0))
+                ];
+                gameState.solutions = [];
+                gameState.selectedSolution = null;
+                gameState.iteration++;
+
+                updateBoardDisplay();
+                updateBlockDisplay(0);
+                updateBlockDisplay(1);
+                updateBlockDisplay(2);
+                document.getElementById('iteration').textContent = gameState.iteration;
+                
+                document.getElementById('solutionsList').innerHTML = `
+                    <div class="empty-state">
+                        <h3>Ready for Next Iteration!</h3>
+                        <p>Design your blocks and click "Get Solutions" to continue.</p>
+                    </div>
+                `;
+
+                showSuccess(`Solution applied! Moved to iteration ${gameState.iteration}`);
+
+            } catch (error) {
+                showError(error.message);
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // UI helpers
+        function showLoading(show) {
+            document.getElementById('loadingMsg').style.display = show ? 'block' : 'none';
+            document.getElementById('solveBtn').disabled = show;
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMsg');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+        }
+
+        function hideError() {
+            document.getElementById('errorMsg').style.display = 'none';
+        }
+
+        function showSuccess(message) {
+            const successDiv = document.createElement('div');
+            successDiv.className = 'success';
+            successDiv.textContent = message;
+            document.getElementById('solutionsList').appendChild(successDiv);
+            
+            setTimeout(() => {
+                successDiv.remove();
+            }, 3000);
+        }
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
