@@ -597,10 +597,11 @@
             createGrid('block2', 5, 5, (row, col) => toggleBlockCell(1, row, col));
             createGrid('block3', 5, 5, (row, col) => toggleBlockCell(2, row, col));
             
-            // Add drag functionality to block grids
-            addDragToBlock('block1', 0);
-            addDragToBlock('block2', 1);
-            addDragToBlock('block3', 2);
+            // Add drag functionality to all grids
+            addDragToGrid('mainBoard', 'board');
+            addDragToGrid('block1', 'block', 0);
+            addDragToGrid('block2', 'block', 1);
+            addDragToGrid('block3', 'block', 2);
             
             // Load preset shapes
             loadPresetShape(0, 'lShape');
@@ -625,67 +626,119 @@
             }
         }
 
-        // Add drag functionality to block grids
-        function addDragToBlock(containerId, blockIndex) {
+        // Add drag functionality to any grid (board or blocks)
+        function addDragToGrid(containerId, gridType, blockIndex = null) {
             const container = document.getElementById(containerId);
             let isDragging = false;
             let dragMode = null; // 'fill' or 'clear'
             let processedCells = new Set();
+            let dragStartTime = 0;
+            let dragStartCell = null;
+            const cellClass = gridType === 'board' ? 'cell' : 'block-cell';
+            const dragThreshold = 100; // milliseconds
 
             // Add mousedown to all cells
             container.addEventListener('mousedown', (e) => {
-                if (e.target.classList.contains('block-cell')) {
-                    isDragging = true;
+                if (e.target.classList.contains(cellClass)) {
+                    dragStartTime = Date.now();
+                    dragStartCell = e.target;
                     const row = parseInt(e.target.dataset.row);
                     const col = parseInt(e.target.dataset.col);
-                    const cellId = `${row}-${col}`;
                     
                     // Determine drag mode based on current cell state
-                    dragMode = gameState.blocks[blockIndex][row][col] === 1 ? 'clear' : 'fill';
-                    processedCells.clear();
-                    processedCells.add(cellId);
+                    let currentValue;
+                    if (gridType === 'board') {
+                        currentValue = gameState.board[row][col];
+                    } else {
+                        currentValue = gameState.blocks[blockIndex][row][col];
+                    }
                     
-                    // Toggle the starting cell
-                    toggleBlockCell(blockIndex, row, col);
-                    e.preventDefault();
+                    dragMode = currentValue === 1 ? 'clear' : 'fill';
+                    processedCells.clear();
+                    
+                    // Don't prevent default yet - let click work if it's just a click
                 }
             });
 
             // Add mouseover to all cells
             container.addEventListener('mouseover', (e) => {
-                if (isDragging && e.target.classList.contains('block-cell')) {
-                    const row = parseInt(e.target.dataset.row);
-                    const col = parseInt(e.target.dataset.col);
-                    const cellId = `${row}-${col}`;
+                if (e.target.classList.contains(cellClass) && dragStartCell) {
+                    const timeSinceStart = Date.now() - dragStartTime;
                     
-                    // Only process if we haven't processed this cell yet
-                    if (!processedCells.has(cellId)) {
-                        const currentValue = gameState.blocks[blockIndex][row][col];
-                        
-                        // Apply the drag mode
-                        if (dragMode === 'fill' && currentValue === 0) {
-                            toggleBlockCell(blockIndex, row, col);
-                        } else if (dragMode === 'clear' && currentValue === 1) {
-                            toggleBlockCell(blockIndex, row, col);
+                    // Only start dragging if enough time has passed (distinguishes from click)
+                    if (timeSinceStart > dragThreshold) {
+                        if (!isDragging) {
+                            // Start dragging now
+                            isDragging = true;
+                            const row = parseInt(dragStartCell.dataset.row);
+                            const col = parseInt(dragStartCell.dataset.col);
+                            const cellId = `${row}-${col}`;
+                            
+                            processedCells.add(cellId);
+                            
+                            // Toggle the starting cell
+                            if (gridType === 'board') {
+                                toggleBoardCell(row, col);
+                            } else {
+                                toggleBlockCell(blockIndex, row, col);
+                            }
                         }
                         
-                        processedCells.add(cellId);
+                        // Continue with drag logic
+                        const row = parseInt(e.target.dataset.row);
+                        const col = parseInt(e.target.dataset.col);
+                        const cellId = `${row}-${col}`;
+                        
+                        // Only process if we haven't processed this cell yet
+                        if (!processedCells.has(cellId)) {
+                            let currentValue;
+                            if (gridType === 'board') {
+                                currentValue = gameState.board[row][col];
+                            } else {
+                                currentValue = gameState.blocks[blockIndex][row][col];
+                            }
+                            
+                            // Apply the drag mode
+                            if (dragMode === 'fill' && currentValue === 0) {
+                                if (gridType === 'board') {
+                                    toggleBoardCell(row, col);
+                                } else {
+                                    toggleBlockCell(blockIndex, row, col);
+                                }
+                            } else if (dragMode === 'clear' && currentValue === 1) {
+                                if (gridType === 'board') {
+                                    toggleBoardCell(row, col);
+                                } else {
+                                    toggleBlockCell(blockIndex, row, col);
+                                }
+                            }
+                            
+                            processedCells.add(cellId);
+                        }
                     }
                 }
             });
 
             // Stop dragging on mouseup anywhere
             document.addEventListener('mouseup', () => {
-                isDragging = false;
-                dragMode = null;
-                processedCells.clear();
+                if (isDragging) {
+                    isDragging = false;
+                    dragMode = null;
+                    processedCells.clear();
+                }
+                dragStartTime = 0;
+                dragStartCell = null;
             });
 
             // Stop dragging if mouse leaves the container
             container.addEventListener('mouseleave', () => {
-                isDragging = false;
-                dragMode = null;
-                processedCells.clear();
+                if (isDragging) {
+                    isDragging = false;
+                    dragMode = null;
+                    processedCells.clear();
+                }
+                dragStartTime = 0;
+                dragStartCell = null;
             });
         }
 
@@ -753,6 +806,21 @@
             showLoading(true);
             hideError();
 
+            // Debug: Log what we're sending to the backend
+            console.log('Sending to backend:');
+            console.log('Board:', gameState.board);
+            console.log('Blocks:', gameState.blocks);
+            
+            // Also show in UI for debugging
+            const debugInfo = document.createElement('div');
+            debugInfo.style.cssText = 'background: #f0f0f0; padding: 10px; margin: 10px 0; border-radius: 5px; font-family: monospace; font-size: 12px;';
+            debugInfo.innerHTML = `
+                <strong>Debug - Data sent to backend:</strong><br>
+                Board: ${JSON.stringify(gameState.board)}<br>
+                Blocks: ${JSON.stringify(gameState.blocks)}
+            `;
+            document.getElementById('solutionsList').appendChild(debugInfo);
+
             try {
                 const response = await fetch('http://localhost:8000/api/solve', {
                     method: 'POST',
@@ -766,6 +834,7 @@
                 });
 
                 const data = await response.json();
+                console.log('Backend response:', data);
 
                 if (!response.ok) {
                     throw new Error(data.error || 'Failed to solve iteration');
@@ -776,6 +845,7 @@
                 displaySolutions();
 
             } catch (error) {
+                console.error('Error:', error);
                 showError(error.message);
             } finally {
                 showLoading(false);
@@ -887,13 +957,38 @@
                     </div>
                 `;
                 
-                // Update current board for next step
+                // Update current board for next step - place the block
                 blockCoords.forEach(coord => {
                     currentBoard[coord.row][coord.col] = 1;
                 });
+                
+                // Clear complete lines (simulate the line clearing)
+                currentBoard = clearCompleteLines(currentBoard);
             });
             
             return stepsHtml;
+        }
+
+        function clearCompleteLines(board) {
+            const newBoard = board.map(row => [...row]);
+            
+            // Check and clear complete rows
+            for (let row = 0; row < 8; row++) {
+                if (newBoard[row].every(cell => cell === 1)) {
+                    newBoard[row] = Array(8).fill(0);
+                }
+            }
+            
+            // Check and clear complete columns
+            for (let col = 0; col < 8; col++) {
+                if (newBoard.every(row => row[col] === 1)) {
+                    for (let row = 0; row < 8; row++) {
+                        newBoard[row][col] = 0;
+                    }
+                }
+            }
+            
+            return newBoard;
         }
 
         function createMiniBoardHtml(board, stepNumber) {

@@ -19,7 +19,8 @@ class BlockBlastSolver:
     def extract_block_coordinates(self, block_grid: List[List[int]]) -> List[Tuple[int, int]]:
         """
         Extract coordinates of filled cells from a 5x5 block grid.
-        Returns list of (row, col) coordinates relative to the block's top-left corner.
+        Returns list of (row, col) coordinates as they appear in the 5x5 canvas.
+        The 5x5 grid is just a canvas - we keep the original positions.
         """
         coordinates = []
         for row in range(5):
@@ -29,35 +30,41 @@ class BlockBlastSolver:
         return coordinates
     
     def can_place_block(self, board: np.ndarray, block_coords: List[Tuple[int, int]], 
-                       center_row: int, center_col: int) -> bool:
+                       top_left_row: int, top_left_col: int) -> bool:
         """
-        Check if a block can be placed at the given center position on the board.
+        Check if a block can be placed at the given top-left position on the board.
+        In Block Blast, blocks can only be placed on empty spaces (0s).
+        The top-left position refers to where the top-left corner of the 5x5 canvas should be placed.
         """
         for block_row, block_col in block_coords:
             # Calculate absolute position on the board
-            abs_row = center_row - 2 + block_row  # -2 to center the 5x5 block
-            abs_col = center_col - 2 + block_col
+            # Place the 5x5 canvas starting at the top-left position
+            abs_row = top_left_row + block_row
+            abs_col = top_left_col + block_col
             
             # Check bounds
             if abs_row < 0 or abs_row >= self.board_size or abs_col < 0 or abs_col >= self.board_size:
                 return False
             
-            # Check if position is already occupied
-            if board[abs_row][abs_col] == 1:
+            # Check if position is empty (0) - blocks can only be placed on empty spaces
+            if board[abs_row][abs_col] != 0:
                 return False
                 
         return True
     
     def place_block(self, board: np.ndarray, block_coords: List[Tuple[int, int]], 
-                   center_row: int, center_col: int) -> np.ndarray:
+                   top_left_row: int, top_left_col: int) -> np.ndarray:
         """
-        Place a block on the board at the given center position.
+        Place a block on the board at the given top-left position.
         Returns a copy of the board with the block placed.
+        The top-left position refers to where the top-left corner of the 5x5 canvas should be placed.
         """
         new_board = board.copy()
         for block_row, block_col in block_coords:
-            abs_row = center_row - 2 + block_row
-            abs_col = center_col - 2 + block_col
+            # Calculate absolute position on the board
+            # Place the 5x5 canvas starting at the top-left position
+            abs_row = top_left_row + block_row
+            abs_col = top_left_col + block_col
             new_board[abs_row][abs_col] = 1
         return new_board
     
@@ -141,33 +148,33 @@ class BlockBlastSolver:
             block_order = [block_coords_list[i] for i in perm]
             
             # Try all possible positions for the first block
-            for center_row in range(self.board_size):
-                for center_col in range(self.board_size):
-                    if not self.can_place_block(board, block_order[0], center_row, center_col):
+            for top_left_row in range(-4, self.board_size - 4):  # Try negative coordinates too
+                for top_left_col in range(-4, self.board_size - 4):  # Try negative coordinates too
+                    if not self.can_place_block(board, block_order[0], top_left_row, top_left_col):
                         continue
                     
                     # Place first block
-                    board_after_first = self.place_block(board, block_order[0], center_row, center_col)
+                    board_after_first = self.place_block(board, block_order[0], top_left_row, top_left_col)
                     board_after_first, lines_cleared_first = self.clear_complete_lines(board_after_first)
                     
                     # Try all possible positions for the second block
-                    for center_row2 in range(self.board_size):
-                        for center_col2 in range(self.board_size):
-                            if not self.can_place_block(board_after_first, block_order[1], center_row2, center_col2):
+                    for top_left_row2 in range(-4, self.board_size - 4):
+                        for top_left_col2 in range(-4, self.board_size - 4):
+                            if not self.can_place_block(board_after_first, block_order[1], top_left_row2, top_left_col2):
                                 continue
                             
                             # Place second block
-                            board_after_second = self.place_block(board_after_first, block_order[1], center_row2, center_col2)
+                            board_after_second = self.place_block(board_after_first, block_order[1], top_left_row2, top_left_col2)
                             board_after_second, lines_cleared_second = self.clear_complete_lines(board_after_second)
                             
                             # Try all possible positions for the third block
-                            for center_row3 in range(self.board_size):
-                                for center_col3 in range(self.board_size):
-                                    if not self.can_place_block(board_after_second, block_order[2], center_row3, center_col3):
+                            for top_left_row3 in range(-4, self.board_size - 4):
+                                for top_left_col3 in range(-4, self.board_size - 4):
+                                    if not self.can_place_block(board_after_second, block_order[2], top_left_row3, top_left_col3):
                                         continue
                                     
                                     # Place third block
-                                    board_after_third = self.place_block(board_after_second, block_order[2], center_row3, center_col3)
+                                    board_after_third = self.place_block(board_after_second, block_order[2], top_left_row3, top_left_col3)
                                     board_after_third, lines_cleared_third = self.clear_complete_lines(board_after_third)
                                     
                                     # Calculate total score
@@ -178,9 +185,9 @@ class BlockBlastSolver:
                                     solution = {
                                         'block_order': list(perm),
                                         'placements': [
-                                            {'block_index': int(perm[0]), 'center_row': int(center_row), 'center_col': int(center_col)},
-                                            {'block_index': int(perm[1]), 'center_row': int(center_row2), 'center_col': int(center_col2)},
-                                            {'block_index': int(perm[2]), 'center_row': int(center_row3), 'center_col': int(center_col3)}
+                                            {'block_index': int(perm[0]), 'top_left_row': int(top_left_row), 'top_left_col': int(top_left_col)},
+                                            {'block_index': int(perm[1]), 'top_left_row': int(top_left_row2), 'top_left_col': int(top_left_col2)},
+                                            {'block_index': int(perm[2]), 'top_left_row': int(top_left_row3), 'top_left_col': int(top_left_col3)}
                                         ],
                                         'final_board': board_after_third.tolist(),
                                         'lines_cleared': int(total_lines_cleared),

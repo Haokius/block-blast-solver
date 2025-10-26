@@ -55,6 +55,18 @@ def solve():
         board = data.get('board')
         blocks = data.get('blocks')
         
+        # Debug: Print what we received
+        print("=== BACKEND DEBUG ===")
+        print("Received board:")
+        for i, row in enumerate(board):
+            print(f"Row {i}: {row}")
+        print("\nReceived blocks:")
+        for i, block in enumerate(blocks):
+            print(f"Block {i+1}:")
+            for j, row in enumerate(block):
+                print(f"  Row {j}: {row}")
+        print("===================")
+        
         if not board or not blocks:
             return jsonify({'error': 'Missing board or blocks data'}), 400
         
@@ -71,12 +83,15 @@ def solve():
         # Solve the iteration
         solutions = solver.solve_iteration(board, blocks)
         
+        print(f"Found {len(solutions)} solutions")
+        
         return jsonify({
             'solutions': solutions,
             'total_solutions': len(solutions)
         })
         
     except Exception as e:
+        print(f"Error in solve endpoint: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/apply-solution', methods=['POST'])
